@@ -18,11 +18,12 @@ class YouTubeDL_Current_Video_Archiver:
         self.download_list = []
 
     def import_current_video_cache(self):
+        print("-Importing current video cache...-")
         try:
             for line in self.parse_file:
                 self.current_videos_cache.append(line.rstrip())
         except IOError:
-            print("The current video cache file doesn't exist. Skipping...")
+            print("The current video cache file doesn't exist. It will be recreated.")
 
     def get_rss_feeds(self):
         print("-Getting RSS feeds...-")
@@ -38,8 +39,8 @@ class YouTubeDL_Current_Video_Archiver:
             print(f"Got feed {rss_feed}.")
             self.feed_list.append(rss_feed)
 
-    def check_rss_cache(self):
-        print("-Checking RSS feed cache...-")
+    def check_current_video_cache(self):
+        print("-Checking current video cache...-")
         for item in self.feed_list:
             feed = feedparser.parse(item)
             print(f"Parsing feed {item}...")
@@ -88,7 +89,7 @@ class YouTubeDL_Current_Video_Archiver:
             self.import_current_video_cache()
         with open(self.input, 'r') as self.parse_file:
             self.get_rss_feeds()
-        self.check_rss_cache()
+        self.check_current_video_cache()
         with open(self.current_videos_cache_file, 'w') as self.parse_file:
             self.update_current_videos_cache()
         if self.download_list != []:
