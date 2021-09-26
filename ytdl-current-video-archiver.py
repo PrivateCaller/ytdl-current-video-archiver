@@ -19,11 +19,8 @@ class YouTubeDL_Current_Video_Archiver:
 
     def import_current_video_cache(self):
         print("-Importing current video cache...-")
-        try:
-            for line in self.parse_file:
-                self.current_videos_cache.append(line.rstrip())
-        except IOError:
-            print("The current video cache file doesn't exist. It will be recreated.")
+        for line in self.parse_file:
+            self.current_videos_cache.append(line.rstrip())
 
     def get_rss_feeds(self):
         print("-Getting RSS feeds...-")
@@ -85,8 +82,11 @@ class YouTubeDL_Current_Video_Archiver:
             os.chdir(owd)
 
     def do_cycle(self):
-        with open(self.current_videos_cache_file, 'r') as self.parse_file:
-            self.import_current_video_cache()
+        try:
+            with open(self.current_videos_cache_file, 'r') as self.parse_file:
+                self.import_current_video_cache()
+        except IOError:
+            print("-The current video cache file doesn't exist. It will be recreated.-")
         with open(self.input, 'r') as self.parse_file:
             self.get_rss_feeds()
         self.check_current_video_cache()
