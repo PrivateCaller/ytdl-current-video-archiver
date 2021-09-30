@@ -5,17 +5,30 @@ owd = os.getcwd()
 
 class YouTubeDL_Current_Video_Archiver:
 
-    def __init__(self, input, output, current_videos_cache_file, video_depth, ytdl_args):
+    def __init__(self, feed_file, additional_urls, output, current_videos_cache_file, video_depth, ytdl_args):
         print("-Initialized.-")
-        self.input = input
+        self.feed_file = feed_file
+        self.additional_urls = additional_urls.split() #Break up the URLs into a list.
+        self.parse_file = None
         self.output = output
         self.video_depth = video_depth
         self.youtube_dl_args = ytdl_args
-        self.parse_file = None
         self.current_videos_cache_file = current_videos_cache_file
         self.current_videos_cache = []
         self.feed_list = []
         self.download_list = []
+
+    def rss_getter(self, url):
+        if 'feeds/videos.xml' in url:
+            #If it's an RSS feed, skip this step.
+            self.feed_list.append(url)
+            return
+        #Scrape the RSS feed from the YouTube channel's landing page. Used for detecting and downloading videos and their metadata.
+        request = requests.get(url)
+        soup = BeautifulSoup(request.text, 'lxml')
+        rss_feed = soup.find(title="RSS").get("href")
+        print(f"Got feed {rss_feed}.")
+        self.feed_list.append(rss_feed)
 
     def import_current_video_cache(self):
         print("-Importing current video cache...-")
@@ -24,17 +37,12 @@ class YouTubeDL_Current_Video_Archiver:
 
     def get_rss_feeds(self):
         print("-Getting RSS feeds...-")
-        for line in self.parse_file:
-            if 'feeds/videos.xml' in line:
-                #If it's an RSS feed, skip this step.
-                self.feed_list.append(line)
-                continue
-            #Scrape the RSS feed from the YouTube channel's landing page. Used for detecting and downloading videos and their metadata.
-            request = requests.get(line)
-            soup = BeautifulSoup(request.text, 'lxml')
-            rss_feed = soup.find(title="RSS").get("href")
-            print(f"Got feed {rss_feed}.")
-            self.feed_list.append(rss_feed)
+        if self.feed_file.lower() != "none":
+            for line in self.parse_file:
+                self.rss_getter(line)
+        if self.additional_urls != "":
+            for url in self.additional_urls:
+                self.rss_getter(url)
 
     def check_current_video_cache(self):
         print("-Checking current video cache...-")
@@ -60,7 +68,7 @@ class YouTubeDL_Current_Video_Archiver:
                         self.download_list.append(item)
 
     def update_current_videos_cache(self):
-        print("-Updating Current Videos Cache File-")
+        print("-Updating current videos cache file..-")
         for item in self.current_videos_cache:
             self.parse_file.write(item + '\n')
 
@@ -82,25 +90,41 @@ class YouTubeDL_Current_Video_Archiver:
             os.chdir(owd)
 
     def do_cycle(self):
-        try:
-            with open(self.current_videos_cache_file, 'r') as self.parse_file:
-                self.import_current_video_cache()
-        except IOError:
-            print("-The current video cache file doesn't exist. It will be recreated.-")
-        with open(self.input, 'r') as self.parse_file:
+        if self.current_videos_cache_file.lower() != "none":
+            try:
+                with open(self.current_videos_cache_file, 'r') as self.parse_file:
+                    self.import_current_video_cache()
+            except IOError:
+                print("-The current video cache file doesn't exist. It will be recreated.-")
+        if self.feed_file.lower() != "none":
+            try:
+                with open(self.feed_file, 'r') as self.parse_file:
+                    self.get_rss_feeds()
+            except IOError:
+                print("-The feeds file doesn't exist. Skipping...-")
+        else:
             self.get_rss_feeds()
         self.check_current_video_cache()
-        with open(self.current_videos_cache_file, 'w') as self.parse_file:
-            self.update_current_videos_cache()
+        if self.current_videos_cache_file.lower() != "none":
+            with open(self.current_videos_cache_file, 'w') as self.parse_file:
+                self.update_current_videos_cache()
         if self.download_list != []:
             self.download_new_videos()
+        else:
+            print("-No new videos were found.")
         print("-Completed.-")
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-i', '--input',
                     default='feeds.txt',
-                    dest='input',
-                    help="File containing YouTube channel or YouTube RSS feed URLS, one URL per line. Defaults to feeds.txt in the script's directory.",
+                    dest='feed_file',
+                    help="File containing YouTube channel or YouTube RSS feed URLS, one URL per line. 'None' skips scanning this file. Defaults to feeds.txt in the script's directory.",
+                    type=str
+                    )
+argparser.add_argument('-l', '--links',
+                    default='',
+                    dest='additional_urls',
+                    help='Additional channel URLs to be parsed for videos. Must be a "string," surrounded by quotation marks, and URLs must be separated by a space. Defaults to "".',
                     type=str
                     )
 argparser.add_argument('-o', '--output',
@@ -111,8 +135,8 @@ argparser.add_argument('-o', '--output',
                     )
 argparser.add_argument('-c', '--current-videos-cache',
                     default='current_videos.txt',
-                    dest='current_videos_cache',
-                    help="File containing the video IDs of downloaded videos, one ID per line. Defaults to current_videos.txt in the script's directory.",
+                    dest='current_videos_cache_file',
+                    help="File containing the video IDs of downloaded videos, one ID per line. 'None' skips scanning this file. Defaults to current_videos.txt in the script's directory.",
                     type=str
                     )
 argparser.add_argument('-v', '--video-depth',
@@ -128,4 +152,4 @@ argparser.add_argument('-y', '--ytdl-args',
                     type=str
                     )
 arg = argparser.parse_args()
-YouTubeDL_Current_Video_Archiver(arg.input, arg.output, arg.current_videos_cache, arg.video_depth, arg.ytdl_args).do_cycle()
+YouTubeDL_Current_Video_Archiver(arg.feed_file, arg.additional_urls, arg.output, arg.current_videos_cache_file, arg.video_depth, arg.ytdl_args).do_cycle()
