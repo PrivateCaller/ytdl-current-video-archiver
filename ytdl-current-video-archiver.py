@@ -115,7 +115,7 @@ class YouTubeDL_Current_Video_Archiver:
         print("-Completed.-")
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('-i', '--input',
+argparser.add_argument('-f', '--feeds-file',
                     default='feeds.txt',
                     dest='feed_file',
                     help="File containing YouTube channel or YouTube RSS feed URLS, one URL per line. 'None' skips scanning this file. Defaults to feeds.txt in the script's directory.",
