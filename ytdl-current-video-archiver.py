@@ -5,30 +5,40 @@ owd = os.getcwd()
 
 class YouTubeDL_Current_Video_Archiver:
 
-    def __init__(self, feed_file, additional_urls, output, current_videos_cache_file, video_depth, ytdl_args):
+    def __init__(self, feed_file, additional_urls, output, current_videos_cache_file, video_depth, downloader, downloader_args):
         print("-Initialized.-")
         self.feed_file = feed_file
         self.additional_urls = additional_urls.split() #Break up the URLs into a list.
         self.parse_file = None
         self.output = output
         self.video_depth = video_depth
-        self.youtube_dl_args = ytdl_args
+        self.downloader = downloader
+        self.downloader_args = downloader_args
         self.current_videos_cache_file = current_videos_cache_file
         self.current_videos_cache = []
         self.feed_list = []
         self.download_list = []
 
     def rss_getter(self, url):
-        if 'feeds/videos.xml' in url:
-            #If it's an RSS feed, skip this step.
-            self.feed_list.append(url)
-            return
-        #Scrape the RSS feed from the YouTube channel's landing page. Used for detecting and downloading videos and their metadata.
-        request = requests.get(url)
-        soup = BeautifulSoup(request.text, 'lxml')
-        rss_feed = soup.find(title="RSS").get("href")
-        print(f"Got feed {rss_feed}.")
+        if '/feeds/' in url:
+            #If it's already an RSS feed, do nothing.
+            rss_feed = url
+        elif '/channel/' in url:
+            #No RSS feed to be scraped, but the channel ID is included in the url, so that can be used to make one manually.
+            channel_id = url.strip('https://www.youtube.com/channel/')
+            rss_feed = f'https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}'
+        else:
+            try:
+                #Scrape the RSS feed from the YouTube channel's landing page. Used for detecting and downloading videos and their metadata.
+                request = requests.get(url)
+                soup = BeautifulSoup(request.text, 'lxml')
+                rss_feed = soup.find(title="RSS").get("href")
+            except TypeError:
+                print(f"RSS feed not found from {url}. Skipping...")
+                return
+        rss_feed = rss_feed.rstrip(); url = url.rstrip() #Annoying newlines.
         self.feed_list.append(rss_feed)
+        print(f"Got feed {rss_feed} from {url}.")
 
     def import_current_video_cache(self):
         print("-Importing current video cache...-")
@@ -48,7 +58,7 @@ class YouTubeDL_Current_Video_Archiver:
         print("-Checking current video cache...-")
         for item in self.feed_list:
             feed = feedparser.parse(item)
-            print(f"Parsing feed {item}...")
+            print(f"Parsing feed {item.rstrip()}...")
 
             if self.video_depth != -1:
                 for video in range(0, self.video_depth):
@@ -82,8 +92,8 @@ class YouTubeDL_Current_Video_Archiver:
             author = video.author
 
             print(f"Downloading {title} by {author}...")
-            if self.youtube_dl_args != '':
-                os.system(f'youtube-dl {self.youtube_dl_args} {link}')
+            if self.downloader_args != '':
+                os.system(f'{self.downloader} {self.downloader_args} {link}')
             else:
                 os.system(f'youtube-dl {link}')
         if self.output != os.getcwd():
@@ -145,11 +155,17 @@ argparser.add_argument('-v', '--video-depth',
                     help="How many of a channel's current videos should be checked for and stored in the current videos cache. -1 downloads everything the channel's RSS feed can detect. Defaults to 1, the newest video only.",
                     type=int
                     )
-argparser.add_argument('-y', '--ytdl-args',
+argparser.add_argument('-d', '--downloader',
+                    default='youtube-dl',
+                    dest='downloader',
+                    help='Command-line utility used for downloading videos. Defaults to youtube-dl.',
+                    type=str
+                    )
+argparser.add_argument('-a', '--downloader-args',
                     default='',
-                    dest='ytdl_args',
-                    help='Arguments to be run with Youtube-dl. Must be a "string," surrounded by quotation marks. Defaults to "".',
+                    dest='downloader_args',
+                    help='Arguments to be run with Youtube-dl, or whatever downloader you choose. Must be a "string," surrounded by quotation marks. Defaults to "".',
                     type=str
                     )
 arg = argparser.parse_args()
-YouTubeDL_Current_Video_Archiver(arg.feed_file, arg.additional_urls, arg.output, arg.current_videos_cache_file, arg.video_depth, arg.ytdl_args).do_cycle()
+YouTubeDL_Current_Video_Archiver(arg.feed_file, arg.additional_urls, arg.output, arg.current_videos_cache_file, arg.video_depth, arg.downloader, arg.downloader_args).do_cycle()

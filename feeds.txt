@@ -1,2 +1,3 @@
-https://www.youtube.com/c/Sample-Channel
-https://www.youtube.com/c/Sample-Channel-Two
+https://www.youtube.com/c/Sample-User
+https://www.youtube.com/channel/Sample-User-Two
+https://www.youtube.com/channel/Sample-User-Three/featured
