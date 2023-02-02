@@ -1,5 +1,5 @@
 # ytdl-current-video-archiver
-A Python 3 script that reads YouTube channel URLs from a file or string, scrapes their RSS feeds, then downloads their latest video(s) with [youtube-dl](https://github.com/ytdl-org/youtube-dl) and saves the video IDs to a cache file (disableable). Intended for to be run regularly.
+A Python 3 script that reads YouTube channel URLs from a file or string, scrapes their RSS feeds, then downloads their latest video(s) with [youtube-dl](https://github.com/ytdl-org/youtube-dl) and saves the video IDs to a cache file (disableable). Intended to be run regularly.
 # Options
 | Command | Description |
 | --- | --- |
