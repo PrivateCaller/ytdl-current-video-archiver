@@ -36,7 +36,8 @@ class YouTubeDL_Current_Video_Archiver:
             except TypeError:
                 print(f"RSS feed not found from {url}. Skipping...")
                 return
-        rss_feed = rss_feed.rstrip(); url = url.rstrip() #Annoying newlines.
+        rss_feed = rss_feed.rstrip()
+        url = url.rstrip() #Annoying newlines.
         self.feed_list.append(rss_feed)
         print(f"Got feed {rss_feed} from {url}.")
 
@@ -49,7 +50,7 @@ class YouTubeDL_Current_Video_Archiver:
         print("-Getting RSS feeds...-")
         if self.feed_file.lower() != "none":
             for line in self.parse_file:
-                self.rss_getter(line)
+                self.rss_getter(line.rstrip())
         if self.additional_urls != "":
             for url in self.additional_urls:
                 self.rss_getter(url)
@@ -61,7 +62,8 @@ class YouTubeDL_Current_Video_Archiver:
             print(f"Parsing feed {item.rstrip()}...")
 
             if self.video_depth != -1:
-                for video in range(0, self.video_depth):
+                pruned_video_depth = len(feed.entries) if self.video_depth > len(feed.entries) else self.video_depth
+                for video in range(0, pruned_video_depth):
                     video = feed.entries[video]
                     video_id = video.yt_videoid
 
@@ -95,7 +97,7 @@ class YouTubeDL_Current_Video_Archiver:
             if self.downloader_args != '':
                 os.system(f'{self.downloader} {self.downloader_args} {link}')
             else:
-                os.system(f'youtube-dl {link}')
+                os.system(f'{self.downloader} {link}')
         if self.output != os.getcwd():
             os.chdir(owd)
 
